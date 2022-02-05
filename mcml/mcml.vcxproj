@@ -116,6 +116,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,13 +143,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\mcml.h" />
+    <ClInclude Include="..\mcml.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\mcmlgo.c" />
-    <ClCompile Include="..\mcmlio.c" />
-    <ClCompile Include="..\mcmlmain.c" />
-    <ClCompile Include="..\mcmlnr.c" />
+    <ClCompile Include="..\mcmlgo.cpp" />
+    <ClCompile Include="..\mcmlio.cpp" />
+    <ClCompile Include="..\mcmlmain.cpp" />
+    <ClCompile Include="..\mcmlnr.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

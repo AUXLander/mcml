@@ -15,21 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\mcml.h">
+    <ClInclude Include="..\mcml.hpp">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\mcmlgo.c">
+    <ClCompile Include="..\mcmlgo.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="..\mcmlio.c">
+    <ClCompile Include="..\mcmlio.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="..\mcmlmain.c">
+    <ClCompile Include="..\mcmlmain.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="..\mcmlnr.c">
+    <ClCompile Include="..\mcmlnr.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

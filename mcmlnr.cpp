@@ -14,8 +14,7 @@
  *	Report error message to stderr, then exit the program
  *	with signal 1.
  ****/
-void nrerror(char error_text[])
-     
+void nrerror(const char error_text[])
 {
   fprintf(stderr,"%s\n",error_text);
   fprintf(stderr,"...now exiting to system...\n");
