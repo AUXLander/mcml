@@ -6,7 +6,6 @@
  ****/
 
 #include "mcml.hpp"
-
  /***********************************************************
   *	Structure used to check against duplicated file names.
   ****/
@@ -608,6 +607,7 @@ void CheckParm(FILE* File_Ptr, InputStruct* In_Ptr)
 	FreeFnameList(head);
 	rewind(File_Ptr);
 }
+
 
 /***********************************************************
  *	Get 1D array elements by summing the 2D array elements.

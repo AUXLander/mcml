@@ -2,6 +2,9 @@
 
 #include "../mcmlnr.hpp"
 #include <memory>
+#include <numeric>
+#include <algorithm>
+
 #include <boost/numeric/ublas/matrix.hpp>
 
 #define STRLEN 256		/* String length. */
@@ -64,38 +67,6 @@ struct InputStruct
 
  //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 
-
-#ifndef CPP_COMPILE
-struct OutStruct
-{
-	double    Rsp;	/* specular reflectance. [-] */
-	double** Rd_ra;	/* 2D distribution of diffuse */
-					  /* reflectance. [1/(cm2 sr)] */
-	double* Rd_r;	/* 1D radial distribution of diffuse */
-					  /* reflectance. [1/cm2] */
-	double* Rd_a;	/* 1D angular distribution of diffuse */
-					  /* reflectance. [1/sr] */
-	double    Rd;		/* total diffuse reflectance. [-] */
-
-	double** A_rz;	/* 2D probability density in turbid */
-					  /* media over r & z. [1/cm3] */
-	double* A_z;	/* 1D probability density over z. */
-					  /* [1/cm] */
-	double* A_l;	/* each layer's absorption */
-					  /* probability. [-] */
-	double    A;		/* total absorption probability. [-] */
-
-	double** Tt_ra;	/* 2D distribution of total */
-					  /* transmittance. [1/(cm2 sr)] */
-	double* Tt_r;	/* 1D radial distribution of */
-					  /* transmittance. [1/cm2] */
-	double* Tt_a;	/* 1D angular distribution of */
-					  /* transmittance. [1/sr] */
-	double    Tt;		/* total transmittance. [-] */
-};
-#else
-using namespace boost::numeric::ublas;
-
 struct OutStruct
 {
 	using value_type = double;
@@ -157,43 +128,93 @@ private:
 
 public:
 
+	struct ResultBlock
+	{
+		matrix_adaptor matrix;
+		vector r;
+		vector a;
+		value_type value;
+		
+		ResultBlock(unique_matrix_ptr&& matrix, size_t rsz, size_t asz)
+			: matrix(std::move(matrix)), r(rsz), a(asz), value(0.0)
+		{;}
+
+		//Sum2DRd, Sum2DTt
+		void Sum2D()
+		{
+			size_t nr = matrix.mtx->size1();
+			size_t na = matrix.mtx->size2();
+			size_t ir, ia;
+
+			double sum;
+
+			for (ir = 0; ir < nr; ir++)
+			{
+				sum = 0.0;
+
+				for (ia = 0; ia < na; ia++)
+				{
+					sum += this->matrix[ir][ia];
+				}
+
+				this->r[ir] = sum;
+			}
+
+			for (ia = 0; ia < na; ia++)
+			{
+				sum = 0.0;
+
+				for (ir = 0; ir < nr; ir++)
+				{
+					sum += this->matrix[ir][ia];
+				}
+
+				this->a[ia] = sum;
+			}
+
+			this->value = std::accumulate(r.begin(), r.end(), 0.0, std::plus<double>{});
+		}
+	};
+
 	value_type Rsp;
 
-	matrix_adaptor Rd_ra;
-	vector Rd_r;
-	vector Rd_a;
-	value_type Rd;
+	ResultBlock Rd_rblock;
+
+	matrix_adaptor& Rd_ra;
+	vector& Rd_r;
+	vector& Rd_a;
+	value_type& Rd;
 
 	matrix_adaptor A_rz;
 	vector A_z;
 	vector A_l;
 	value_type A;
 
-	matrix_adaptor Tt_ra;
-	vector Tt_r;
-	vector Tt_a;
-	value_type Tt;
+	ResultBlock Tt_rblock;
+
+	matrix_adaptor& Tt_ra;
+	vector& Tt_r;
+	vector& Tt_a;
+	value_type& Tt;
 
 	OutStruct(InputStruct cfg)
-		: Rsp(0.0), Rd(0.0), A(0.0), Tt(0.0),
+		: Rsp(0.0), A(0.0),
 		  /* Allocate the arrays and the matrices. */
-		  Rd_ra(std::make_unique<matrix>(cfg.nr, cfg.na)), Rd_r(cfg.nr), Rd_a(cfg.na),
-		  A_rz (std::make_unique<matrix>(cfg.nr, cfg.nz)), A_z(cfg.nz),  A_l(cfg.num_layers + 2),
-		  Tt_ra(std::make_unique<matrix>(cfg.nr, cfg.na)), Tt_r(cfg.nr), Tt_a(cfg.na)
+		  Rd_rblock(std::make_unique<matrix>(cfg.nr, cfg.na), cfg.nr, cfg.na), Rd_ra(Rd_rblock.matrix), Rd_r(Rd_rblock.r), Rd_a(Rd_rblock.a), Rd(Rd_rblock.value),
+		  A_rz(std::make_unique<matrix>(cfg.nr, cfg.nz)), A_z(cfg.nz), A_l(cfg.num_layers + 2),
+		  Tt_rblock(std::make_unique<matrix>(cfg.nr, cfg.na), cfg.nr, cfg.na), Tt_ra(Tt_rblock.matrix), Tt_r(Tt_rblock.r), Tt_a(Tt_rblock.a), Tt(Tt_rblock.value)
 	{
 		/***********************************************************
 		 *	Allocate the arrays in OutStruct for one run, and
 		 *	array elements are automatically initialized to zeros.
 		 ****/
 
-		short nz = cfg.nz;
-		short nr = cfg.nr;
-		short na = cfg.na;
-		short nl = cfg.num_layers;
 		/* remember to use nl+2 because of 2 for ambient. */
 
-		if (nz <= 0 || nr <= 0 || na <= 0 || nl <= 0)
+		if (cfg.nz <= 0 || cfg.nr <= 0 || cfg.na <= 0 || cfg.num_layers <= 0)
 		{
+			throw std::logic_error("Wrong grid parameters.\n");
+
 			nrerror("Wrong grid parameters.\n");
 		}
 	}
@@ -206,6 +227,5 @@ public:
 		free(In_Parm.layerspecs);
 	}
 };
-#endif
 
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
