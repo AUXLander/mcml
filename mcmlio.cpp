@@ -412,9 +412,7 @@ void ReadAmbient(FILE* File_Ptr, LayerStruct* Layer_Ptr, const char* side)
  *	is used to convert thickness of layer to z coordinates
  *	of the two boundaries of the layer.
  ****/
-bool ReadOneLayer(FILE* File_Ptr,
-	LayerStruct* Layer_Ptr,
-	double* Z_Ptr)
+bool ReadOneLayer(FILE* File_Ptr, LayerStruct* Layer_Ptr, double* Z_Ptr)
 {
 	char buf[STRLEN], msg[STRLEN];
 	double d, n, mua, mus, g;	/* d is thickness. */
@@ -611,76 +609,10 @@ void CheckParm(FILE* File_Ptr, InputStruct* In_Ptr)
 	rewind(File_Ptr);
 }
 
-
-/***********************************************************
- *	Allocate the arrays in OutStruct for one run, and
- *	array elements are automatically initialized to zeros.
- ****/
-void InitOutputData(InputStruct In_Parm,
-	OutStruct* Out_Ptr)
-{
-	short nz = In_Parm.nz;
-	short nr = In_Parm.nr;
-	short na = In_Parm.na;
-	short nl = In_Parm.num_layers;
-	/* remember to use nl+2 because of 2 for ambient. */
-
-	if (nz <= 0 || nr <= 0 || na <= 0 || nl <= 0)
-	{
-		nrerror("Wrong grid parameters.\n");
-	}
-
-	/* Init pure numbers. */
-	Out_Ptr->Rsp = 0.0;
-	Out_Ptr->Rd = 0.0;
-	Out_Ptr->A = 0.0;
-	Out_Ptr->Tt = 0.0;
-
-	/* Allocate the arrays and the matrices. */
-	Out_Ptr->Rd_ra = AllocMatrix(0, nr - 1, 0, na - 1);
-	Out_Ptr->Rd_r = AllocVector(0, nr - 1);
-	Out_Ptr->Rd_a = AllocVector(0, na - 1);
-
-	Out_Ptr->A_rz = AllocMatrix(0, nr - 1, 0, nz - 1);
-	Out_Ptr->A_z = AllocVector(0, nz - 1);
-	Out_Ptr->A_l = AllocVector(0, nl + 1);
-
-	Out_Ptr->Tt_ra = AllocMatrix(0, nr - 1, 0, na - 1);
-	Out_Ptr->Tt_r = AllocVector(0, nr - 1);
-	Out_Ptr->Tt_a = AllocVector(0, na - 1);
-}
-
-/***********************************************************
- *	Undo what InitOutputData did.
- *  i.e. free the data allocations.
- ****/
-void FreeData(InputStruct In_Parm, OutStruct* Out_Ptr)
-{
-	short nz = In_Parm.nz;
-	short nr = In_Parm.nr;
-	short na = In_Parm.na;
-	short nl = In_Parm.num_layers;
-	/* remember to use nl+2 because of 2 for ambient. */
-
-	free(In_Parm.layerspecs);
-
-	FreeMatrix(Out_Ptr->Rd_ra, 0, nr - 1, 0, na - 1);
-	FreeVector(Out_Ptr->Rd_r, 0, nr - 1);
-	FreeVector(Out_Ptr->Rd_a, 0, na - 1);
-
-	FreeMatrix(Out_Ptr->A_rz, 0, nr - 1, 0, nz - 1);
-	FreeVector(Out_Ptr->A_z, 0, nz - 1);
-	FreeVector(Out_Ptr->A_l, 0, nl + 1);
-
-	FreeMatrix(Out_Ptr->Tt_ra, 0, nr - 1, 0, na - 1);
-	FreeVector(Out_Ptr->Tt_r, 0, nr - 1);
-	FreeVector(Out_Ptr->Tt_a, 0, na - 1);
-}
-
 /***********************************************************
  *	Get 1D array elements by summing the 2D array elements.
  ****/
-void Sum2DRd(InputStruct In_Parm, OutStruct* Out_Ptr)
+void Sum2DRd(InputStruct In_Parm, OutStruct& Out_Ptr)
 {
 	short nr = In_Parm.nr;
 	short na = In_Parm.na;
@@ -693,10 +625,10 @@ void Sum2DRd(InputStruct In_Parm, OutStruct* Out_Ptr)
 
 		for (ia = 0; ia < na; ia++)
 		{
-			sum += Out_Ptr->Rd_ra[ir][ia];
+			sum += Out_Ptr.Rd_ra[ir][ia];
 		}
 
-		Out_Ptr->Rd_r[ir] = sum;
+		Out_Ptr.Rd_r[ir] = sum;
 	}
 
 	for (ia = 0; ia < na; ia++) 
@@ -705,20 +637,20 @@ void Sum2DRd(InputStruct In_Parm, OutStruct* Out_Ptr)
 
 		for (ir = 0; ir < nr; ir++)
 		{
-			sum += Out_Ptr->Rd_ra[ir][ia];
+			sum += Out_Ptr.Rd_ra[ir][ia];
 		}
 
-		Out_Ptr->Rd_a[ia] = sum;
+		Out_Ptr.Rd_a[ia] = sum;
 	}
 
 	sum = 0.0;
 
 	for (ir = 0; ir < nr; ir++)
 	{
-		sum += Out_Ptr->Rd_r[ir];
+		sum += Out_Ptr.Rd_r[ir];
 	}
 
-	Out_Ptr->Rd = sum;
+	Out_Ptr.Rd = sum;
 }
 
 /***********************************************************
@@ -742,7 +674,7 @@ short IzToLayer(short Iz, InputStruct In_Parm)
 /***********************************************************
  *	Get 1D array elements by summing the 2D array elements.
  ****/
-void Sum2DA(InputStruct In_Parm, OutStruct* Out_Ptr)
+void Sum2DA(InputStruct In_Parm, OutStruct& Out_Ptr)
 {
 	short nz = In_Parm.nz;
 	short nr = In_Parm.nr;
@@ -755,26 +687,26 @@ void Sum2DA(InputStruct In_Parm, OutStruct* Out_Ptr)
 
 		for (ir = 0; ir < nr; ir++)
 		{
-			sum += Out_Ptr->A_rz[ir][iz];
+			sum += Out_Ptr.A_rz[ir][iz];
 		}
 
-		Out_Ptr->A_z[iz] = sum;
+		Out_Ptr.A_z[iz] = sum;
 	}
 
 	sum = 0.0;
 	for (iz = 0; iz < nz; iz++) 
 	{
-		sum += Out_Ptr->A_z[iz];
-		Out_Ptr->A_l[IzToLayer(iz, In_Parm)] += Out_Ptr->A_z[iz];
+		sum += Out_Ptr.A_z[iz];
+		Out_Ptr.A_l[IzToLayer(iz, In_Parm)] += Out_Ptr.A_z[iz];
 	}
 
-	Out_Ptr->A = sum;
+	Out_Ptr.A = sum;
 }
 
 /***********************************************************
  *	Get 1D array elements by summing the 2D array elements.
  ****/
-void Sum2DTt(InputStruct In_Parm, OutStruct* Out_Ptr)
+void Sum2DTt(InputStruct In_Parm, OutStruct& Out_Ptr)
 {
 	short nr = In_Parm.nr;
 	short na = In_Parm.na;
@@ -787,10 +719,10 @@ void Sum2DTt(InputStruct In_Parm, OutStruct* Out_Ptr)
 
 		for (ia = 0; ia < na; ia++)
 		{
-			sum += Out_Ptr->Tt_ra[ir][ia];
+			sum += Out_Ptr.Tt_ra[ir][ia];
 		}
 
-		Out_Ptr->Tt_r[ir] = sum;
+		Out_Ptr.Tt_r[ir] = sum;
 	}
 
 	for (ia = 0; ia < na; ia++) 
@@ -799,20 +731,20 @@ void Sum2DTt(InputStruct In_Parm, OutStruct* Out_Ptr)
 		
 		for (ir = 0; ir < nr; ir++)
 		{
-			sum += Out_Ptr->Tt_ra[ir][ia];
+			sum += Out_Ptr.Tt_ra[ir][ia];
 		}
 
-		Out_Ptr->Tt_a[ia] = sum;
+		Out_Ptr.Tt_a[ia] = sum;
 	}
 
 	sum = 0.0;
 
 	for (ir = 0; ir < nr; ir++)
 	{
-		sum += Out_Ptr->Tt_r[ir];
+		sum += Out_Ptr.Tt_r[ir];
 	}
 
-	Out_Ptr->Tt = sum;
+	Out_Ptr.Tt = sum;
 }
 
 /***********************************************************
@@ -834,7 +766,7 @@ void Sum2DTt(InputStruct In_Parm, OutStruct* Out_Ptr)
  *	Scale Rd(a) and Tt(a) by
  *		(solid angle)x(No. of photons).
  ****/
-void ScaleRdTt(InputStruct In_Parm, OutStruct* Out_Ptr)
+void ScaleRdTt(InputStruct In_Parm, OutStruct& Out_Ptr)
 {
 	short nr = In_Parm.nr;
 	short na = In_Parm.na;
@@ -849,8 +781,8 @@ void ScaleRdTt(InputStruct In_Parm, OutStruct* Out_Ptr)
 	for (ir = 0; ir < nr; ir++)
 		for (ia = 0; ia < na; ia++) {
 			scale2 = 1.0 / ((ir + 0.5) * sin(2.0 * (ia + 0.5) * da) * scale1);
-			Out_Ptr->Rd_ra[ir][ia] *= scale2;
-			Out_Ptr->Tt_ra[ir][ia] *= scale2;
+			Out_Ptr.Rd_ra[ir][ia] *= scale2;
+			Out_Ptr.Tt_ra[ir][ia] *= scale2;
 		}
 
 	scale1 = 2.0 * PI * dr * dr * In_Parm.num_photons;
@@ -859,8 +791,8 @@ void ScaleRdTt(InputStruct In_Parm, OutStruct* Out_Ptr)
 
 	for (ir = 0; ir < nr; ir++) {
 		scale2 = 1.0 / ((ir + 0.5) * scale1);
-		Out_Ptr->Rd_r[ir] *= scale2;
-		Out_Ptr->Tt_r[ir] *= scale2;
+		Out_Ptr.Rd_r[ir] *= scale2;
+		Out_Ptr.Tt_r[ir] *= scale2;
 	}
 
 	scale1 = 2.0 * PI * da * In_Parm.num_photons;
@@ -868,19 +800,19 @@ void ScaleRdTt(InputStruct In_Parm, OutStruct* Out_Ptr)
 
 	for (ia = 0; ia < na; ia++) {
 		scale2 = 1.0 / (sin((ia + 0.5) * da) * scale1);
-		Out_Ptr->Rd_a[ia] *= scale2;
-		Out_Ptr->Tt_a[ia] *= scale2;
+		Out_Ptr.Rd_a[ia] *= scale2;
+		Out_Ptr.Tt_a[ia] *= scale2;
 	}
 
 	scale2 = 1.0 / (double)In_Parm.num_photons;
-	Out_Ptr->Rd *= scale2;
-	Out_Ptr->Tt *= scale2;
+	Out_Ptr.Rd *= scale2;
+	Out_Ptr.Tt *= scale2;
 }
 
 /***********************************************************
  *	Scale absorption arrays properly.
  ****/
-void ScaleA(InputStruct In_Parm, OutStruct* Out_Ptr)
+void ScaleA(InputStruct In_Parm, OutStruct& Out_Ptr)
 {
 	short nz = In_Parm.nz;
 	short nr = In_Parm.nr;
@@ -897,26 +829,25 @@ void ScaleA(InputStruct In_Parm, OutStruct* Out_Ptr)
 	/* ir+0.5 to be added. */
 	for (iz = 0; iz < nz; iz++)
 		for (ir = 0; ir < nr; ir++)
-			Out_Ptr->A_rz[ir][iz] /= (ir + 0.5) * scale1;
+			Out_Ptr.A_rz[ir][iz] /= (ir + 0.5) * scale1;
 
 	/* Scale A_z. */
 	scale1 = 1.0 / (dz * In_Parm.num_photons);
 	for (iz = 0; iz < nz; iz++)
-		Out_Ptr->A_z[iz] *= scale1;
+		Out_Ptr.A_z[iz] *= scale1;
 
 	/* Scale A_l. Avoid int/int. */
 	scale1 = 1.0 / (double)In_Parm.num_photons;
 	for (il = 0; il <= nl + 1; il++)
-		Out_Ptr->A_l[il] *= scale1;
+		Out_Ptr.A_l[il] *= scale1;
 
-	Out_Ptr->A *= scale1;
+	Out_Ptr.A *= scale1;
 }
 
 /***********************************************************
  *	Sum and scale results of current run.
  ****/
-void SumScaleResult(InputStruct In_Parm,
-	OutStruct* Out_Ptr)
+void SumScaleResult(InputStruct In_Parm, OutStruct& Out_Ptr)
 {
 	/* Get 1D & 0D results. */
 	Sum2DRd(In_Parm, Out_Ptr);
@@ -986,7 +917,7 @@ void WriteInParm(FILE* file, InputStruct In_Parm)
 /***********************************************************
  *	Write reflectance, absorption, transmission.
  ****/
-void WriteRAT(FILE* file, OutStruct Out_Parm)
+void WriteRAT(FILE* file, const OutStruct& Out_Parm)
 {
 	fprintf(file,
 		"RAT #Reflectance, absorption, transmission. \n");
@@ -1007,9 +938,7 @@ void WriteRAT(FILE* file, OutStruct Out_Parm)
 /***********************************************************
  *	Write absorption as a function of layer.
  ****/
-void WriteA_layer(FILE* file,
-	short Num_Layers,
-	OutStruct Out_Parm)
+void WriteA_layer(FILE* file, short Num_Layers, const OutStruct& Out_Parm)
 {
 	short i;
 
@@ -1025,10 +954,7 @@ void WriteA_layer(FILE* file,
 /***********************************************************
  *	5 numbers each line.
  ****/
-void WriteRd_ra(FILE* file,
-	short Nr,
-	short Na,
-	OutStruct Out_Parm)
+void WriteRd_ra(FILE* file, short Nr, short Na, const OutStruct& Out_Parm)
 {
 	short ir, ia;
 
@@ -1053,9 +979,7 @@ void WriteRd_ra(FILE* file,
 /***********************************************************
  *	1 number each line.
  ****/
-void WriteRd_r(FILE* file,
-	short Nr,
-	OutStruct Out_Parm)
+void WriteRd_r(FILE* file, short Nr, const OutStruct& Out_Parm)
 {
 	short ir;
 
@@ -1072,9 +996,7 @@ void WriteRd_r(FILE* file,
 /***********************************************************
  *	1 number each line.
  ****/
-void WriteRd_a(FILE* file,
-	short Na,
-	OutStruct Out_Parm)
+void WriteRd_a(FILE* file, short Na, const OutStruct& Out_Parm)
 {
 	short ia;
 
@@ -1091,10 +1013,7 @@ void WriteRd_a(FILE* file,
 /***********************************************************
  *	5 numbers each line.
  ****/
-void WriteTt_ra(FILE* file,
-	short Nr,
-	short Na,
-	OutStruct Out_Parm)
+void WriteTt_ra(FILE* file, short Nr, short Na, const OutStruct& Out_Parm)
 {
 	short ir, ia;
 
@@ -1119,10 +1038,7 @@ void WriteTt_ra(FILE* file,
 /***********************************************************
  *	5 numbers each line.
  ****/
-void WriteA_rz(FILE* file,
-	short Nr,
-	short Nz,
-	OutStruct Out_Parm)
+void WriteA_rz(FILE* file, short Nr, short Nz, const OutStruct& Out_Parm)
 {
 	short iz, ir;
 
@@ -1147,9 +1063,7 @@ void WriteA_rz(FILE* file,
 /***********************************************************
  *	1 number each line.
  ****/
-void WriteA_z(FILE* file,
-	short Nz,
-	OutStruct Out_Parm)
+void WriteA_z(FILE* file, short Nz, const OutStruct& Out_Parm)
 {
 	short iz;
 
@@ -1166,9 +1080,7 @@ void WriteA_z(FILE* file,
 /***********************************************************
  *	1 number each line.
  ****/
-void WriteTt_r(FILE* file,
-	short Nr,
-	OutStruct Out_Parm)
+void WriteTt_r(FILE* file, short Nr, const OutStruct& Out_Parm)
 {
 	short ir;
 
@@ -1185,9 +1097,7 @@ void WriteTt_r(FILE* file,
 /***********************************************************
  *	1 number each line.
  ****/
-void WriteTt_a(FILE* file,
-	short Na,
-	OutStruct Out_Parm)
+void WriteTt_a(FILE* file, short Na, const OutStruct& Out_Parm)
 {
 	short ia;
 
@@ -1203,9 +1113,7 @@ void WriteTt_a(FILE* file,
 
 /***********************************************************
  ****/
-void WriteResult(InputStruct In_Parm,
-	OutStruct Out_Parm,
-	char* TimeReport)
+void WriteResult(InputStruct In_Parm, const OutStruct& Out_Parm, char* TimeReport)
 {
 	FILE* file;
 

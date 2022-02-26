@@ -24,9 +24,9 @@ void InitOutputData(InputStruct, OutStruct*);
 void FreeData(InputStruct, OutStruct*);
 double Rspecular(LayerStruct*);
 void InitializePhotonPacket(double, LayerStruct*, PhotonStruct*);
-void HopDropSpin(InputStruct*, PhotonStruct*, OutStruct*);
-void SumScaleResult(InputStruct, OutStruct*);
-void WriteResult(InputStruct, OutStruct, char*);
+void HopDropSpin(InputStruct*, PhotonStruct*, OutStruct&);
+void SumScaleResult(InputStruct, OutStruct&);
+void WriteResult(InputStruct, const OutStruct&, char*);
 
 
 /***********************************************************
@@ -105,14 +105,14 @@ void PredictDoneTime(long P1, long Pt)
 /***********************************************************
  *	Report time and write results.
  ****/
-void ReportResult(InputStruct In_Parm, OutStruct Out_Parm)
+void ReportResult(InputStruct In_Parm, OutStruct& Out_Parm)
 {
 	char time_report[STRLEN];
 
 	strcpy(time_report, " Simulation time of this run.");
 	PunchTime(1, time_report);
 
-	SumScaleResult(In_Parm, &Out_Parm);
+	SumScaleResult(In_Parm, Out_Parm);
 	WriteResult(In_Parm, Out_Parm, time_report);
 }
 
@@ -135,11 +135,12 @@ void GetFnameFromArgv(int argc, const char* argv[], char* input_filename)
  ****/
 void DoOneRun(short NumRuns, InputStruct* In_Ptr)
 {
-	OutStruct out_parm;
+	OutStruct out_parm(*In_Ptr);
 	PhotonStruct photon;
-	long num_photons = In_Ptr->num_photons, photon_rep = 10;
 
-	InitOutputData(*In_Ptr, &out_parm);
+	long num_photons = In_Ptr->num_photons;
+	long photon_rep = 10;
+
 	out_parm.Rsp = Rspecular(In_Ptr->layerspecs);
 
 	long photon_idx = num_photons; // photon index
@@ -162,14 +163,15 @@ void DoOneRun(short NumRuns, InputStruct* In_Ptr)
 
 		do
 		{
-			HopDropSpin(In_Ptr, &photon, &out_parm);
+			HopDropSpin(In_Ptr, &photon, out_parm);
 		}
 		while (!photon.dead);
 	}
 	while (--photon_idx);
 
 	ReportResult(*In_Ptr, out_parm);
-	FreeData(*In_Ptr, &out_parm);
+
+	out_parm.FreeData(*In_Ptr);
 }
 
 /***********************************************************

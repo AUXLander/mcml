@@ -391,9 +391,7 @@ bool HitBoundary(PhotonStruct* Photon_Ptr, InputStruct* In_Ptr)
  *	The dropped weight is assigned to the absorption array
  *	elements.
  ****/
-void Drop(InputStruct* In_Ptr,
-	PhotonStruct* Photon_Ptr,
-	OutStruct* Out_Ptr)
+void Drop(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	double dwa;		/* absorbed weight.*/
 	double x = Photon_Ptr->x;
@@ -416,7 +414,7 @@ void Drop(InputStruct* In_Ptr,
 	Photon_Ptr->w -= dwa;
 
 	/* assign dwa to the absorption array element. */
-	Out_Ptr->A_rz[ir][iz] += dwa;
+	Out_Ptr.A_rz[ir][iz] += dwa;
 }
 
 /***********************************************************
@@ -518,7 +516,7 @@ double RFresnel(double n1,	/* incident refractive index.*/
  *
  *	Update the photon weight as well.
  ****/
-void RecordR(double	Refl /* reflectance. */, InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void RecordR(double	Refl /* reflectance. */, InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	double x = Photon_Ptr->x;
 	double y = Photon_Ptr->y;
@@ -537,7 +535,7 @@ void RecordR(double	Refl /* reflectance. */, InputStruct* In_Ptr, PhotonStruct* 
 	}
 
 	/* assign photon to the reflection array element. */
-	Out_Ptr->Rd_ra[ir][ia] += Photon_Ptr->w * (1.0 - Refl);
+	Out_Ptr.Rd_ra[ir][ia] += Photon_Ptr->w * (1.0 - Refl);
 
 	Photon_Ptr->w *= Refl;
 }
@@ -549,7 +547,7 @@ void RecordR(double	Refl /* reflectance. */, InputStruct* In_Ptr, PhotonStruct* 
  *
  *	Update the photon weight as well.
  ****/
-void RecordT(double Refl, InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void RecordT(double Refl, InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	double x = Photon_Ptr->x;
 	double y = Photon_Ptr->y;
@@ -562,7 +560,7 @@ void RecordT(double Refl, InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStru
 	if (ia > In_Ptr->na - 1) ia = In_Ptr->na - 1;
 
 	/* assign photon to the transmittance array element. */
-	Out_Ptr->Tt_ra[ir][ia] += Photon_Ptr->w * (1.0 - Refl);
+	Out_Ptr.Tt_ra[ir][ia] += Photon_Ptr->w * (1.0 - Refl);
 
 	Photon_Ptr->w *= Refl;
 }
@@ -586,7 +584,7 @@ void RecordT(double Refl, InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStru
  *
  *	Update the photon parmameters.
  ****/
-void CrossUpOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void CrossUpOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	double uz = Photon_Ptr->uz; /* z directional cosine. */
 	double uz1;					/* cosines of transmission alpha. always positive */
@@ -639,7 +637,7 @@ void CrossUpOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_
  *
  *	Update the photon parmameters.
  ****/
-void CrossDnOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void CrossDnOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	double uz = Photon_Ptr->uz; /* z directional cosine. */
 	double uz1;	/* cosines of transmission alpha. */
@@ -682,7 +680,7 @@ void CrossDnOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_
 
 /***********************************************************
  ****/
-void CrossOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void CrossOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	if (Photon_Ptr->uz < 0.0)
 	{
@@ -699,7 +697,7 @@ void CrossOrNot(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Pt
  *	Horizontal photons are killed because they will
  *	never interact with tissue again.
  ****/
-void HopInGlass(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void HopInGlass(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	double dl;     /* step size. 1/cm */
 
@@ -730,7 +728,7 @@ void HopInGlass(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Pt
  *	site.  If the unfinished stepsize is still too long,
  *	repeat the above process.
  ****/
-void HopDropSpinInTissue(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void HopDropSpinInTissue(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	StepSizeInTissue(Photon_Ptr, In_Ptr);
 
@@ -751,7 +749,7 @@ void HopDropSpinInTissue(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruc
 
 /***********************************************************
  ****/
-void HopDropSpin(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct* Out_Ptr)
+void HopDropSpin(InputStruct* In_Ptr, PhotonStruct* Photon_Ptr, OutStruct& Out_Ptr)
 {
 	short layer = Photon_Ptr->layer;
 

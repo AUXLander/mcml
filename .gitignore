@@ -4,6 +4,7 @@
 *.mci
 *.bak
 *.out
+boost_1_77_0/
 
 
 # User-specific files
