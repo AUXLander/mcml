@@ -22,8 +22,7 @@ void ReadParm(FILE*, InputStruct*);
 void CheckParm(FILE*, InputStruct*);
 void InitOutputData(InputStruct, OutStruct*);
 void FreeData(InputStruct, OutStruct*);
-double Rspecular(LayerStruct*);
-void InitializePhotonPacket(double, LayerStruct*, PhotonStruct*);
+//double Rspecular(LayerStruct*);
 void HopDropSpin(InputStruct*, PhotonStruct*, OutStruct&);
 void SumScaleResult(InputStruct, OutStruct&);
 void WriteResult(InputStruct, const OutStruct&, char*);
@@ -133,15 +132,15 @@ void GetFnameFromArgv(int argc, const char* argv[], char* input_filename)
 /***********************************************************
  *	Execute Monte Carlo simulation for one independent run.
  ****/
-void DoOneRun(short NumRuns, InputStruct* In_Ptr)
+void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 {
-	OutStruct out_parm(*In_Ptr);
-	PhotonStruct photon;
+	OutStruct out_parm(In_Ptr);
+	PhotonStruct photon(In_Ptr);
 
-	long num_photons = In_Ptr->num_photons;
+	long num_photons = In_Ptr.num_photons;
 	long photon_rep = 10;
 
-	out_parm.Rsp = Rspecular(In_Ptr->layerspecs);
+	out_parm.Rsp = Rspecular(In_Ptr.layerspecs);
 
 	long photon_idx = num_photons; // photon index
 
@@ -157,21 +156,20 @@ void DoOneRun(short NumRuns, InputStruct* In_Ptr)
 			PredictDoneTime(num_photons - photon_idx, num_photons);
 			photon_rep *= 10;
 		}
-
 		
-		InitializePhotonPacket(out_parm.Rsp, In_Ptr->layerspecs, &photon);
+		photon.init(out_parm.Rsp, In_Ptr.layerspecs);
 
 		do
 		{
-			HopDropSpin(In_Ptr, &photon, out_parm);
+			photon.HopDropSpin(out_parm);
 		}
 		while (!photon.dead);
 	}
 	while (--photon_idx);
 
-	ReportResult(*In_Ptr, out_parm);
+	ReportResult(In_Ptr, out_parm);
 
-	out_parm.FreeData(*In_Ptr);
+	In_Ptr.free();
 }
 
 /***********************************************************
@@ -200,7 +198,7 @@ char main(const int argc, const char* argv[])
 	while (num_runs--)
 	{
 		ReadParm(input_file_ptr, &in_parm);
-		DoOneRun(num_runs, &in_parm);
+		DoOneRun(num_runs, in_parm);
 	}
 
 	fclose(input_file_ptr);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mcmlnr.hpp"
+//#include "../mcmlnr.hpp"
 #include <memory>
 #include <numeric>
 #include <algorithm>
@@ -12,6 +12,14 @@
 struct LayerStruct;
 
 #define CPP_COMPILE
+
+
+/***********************************************************
+ *	Report error message to stderr, then exit the program
+ *	with signal 1.
+ ****/
+void nrerror(const char error_text[]);
+
 
 /****
  *	Input parameters for each independent run.
@@ -52,6 +60,14 @@ struct InputStruct
 
 	short	num_layers;			/* number of layers. */
 	LayerStruct* layerspecs;	/* layer parameters. */
+
+	void free()
+	{
+		if (layerspecs)
+		{
+			::free(layerspecs);
+		}
+	}
 };
 
 /****
@@ -215,17 +231,12 @@ public:
 		{
 			throw std::logic_error("Wrong grid parameters.\n");
 
-			nrerror("Wrong grid parameters.\n");
+			//nrerror("Wrong grid parameters.\n");
 		}
 	}
 
 	~OutStruct()
 	{;}
-	
-	void FreeData(InputStruct In_Parm)
-	{
-		free(In_Parm.layerspecs);
-	}
 };
 
 //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\

@@ -19,6 +19,9 @@
     <Filter Include="Файлы">
       <UniqueIdentifier>{a8d991ac-3654-4dac-b9bf-1c7e7846d172}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Исходные файлы\math">
+      <UniqueIdentifier>{328d25e2-e93b-44c2-a380-492ee8e229a7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\mcml.hpp">
@@ -29,6 +32,12 @@
     </ClInclude>
     <ClInclude Include="..\mcmlnr.hpp">
       <Filter>Файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="..\math\math.h">
+      <Filter>Исходные файлы\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\math\mcmlrandom.h">
+      <Filter>Исходные файлы\math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -46,6 +55,12 @@
     </ClCompile>
     <ClCompile Include="..\mcmlnr.cpp">
       <Filter>Файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="..\math\math.cpp">
+      <Filter>Исходные файлы\math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\math\mcmlrandom.cpp">
+      <Filter>Исходные файлы\math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

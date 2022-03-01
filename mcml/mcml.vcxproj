@@ -146,11 +146,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\io\io.hpp" />
+    <ClInclude Include="..\math\math.h" />
+    <ClInclude Include="..\math\mcmlrandom.h" />
     <ClInclude Include="..\mcml.hpp" />
     <ClInclude Include="..\mcmlnr.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\io\io.cpp" />
+    <ClCompile Include="..\math\math.cpp" />
+    <ClCompile Include="..\math\mcmlrandom.cpp" />
     <ClCompile Include="..\mcmlgo.cpp" />
     <ClCompile Include="..\mcmlio.cpp" />
     <ClCompile Include="..\mcmlmain.cpp" />
