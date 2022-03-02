@@ -41,9 +41,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\mcmlgo.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="..\mcmlio.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>

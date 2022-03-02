@@ -23,7 +23,7 @@ void CheckParm(FILE*, InputStruct*);
 void InitOutputData(InputStruct, OutStruct*);
 void FreeData(InputStruct, OutStruct*);
 //double Rspecular(LayerStruct*);
-void HopDropSpin(InputStruct*, PhotonStruct*, OutStruct&);
+void hop_drop_spin(InputStruct*, PhotonStruct*, OutStruct&);
 void SumScaleResult(InputStruct, OutStruct&);
 void WriteResult(InputStruct, const OutStruct&, char*);
 
@@ -161,7 +161,7 @@ void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 
 		do
 		{
-			photon.HopDropSpin(out_parm);
+			photon.hop_drop_spin(out_parm);
 		}
 		while (!photon.dead);
 	}

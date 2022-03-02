@@ -26,6 +26,11 @@ struct LayerStruct
 	double anisotropy;		    /* anisotropy. */
 
 	double cos_crit0, cos_crit1;
+
+	inline bool is_glass() const
+	{
+		return mua == 0.0 && mus == 0.0;
+	}
 };
 
 double Rspecular(LayerStruct* Layerspecs_Ptr);
@@ -54,20 +59,20 @@ struct PhotonStruct
 
 	void spin(const double anisotropy);
 
-	void Hop();
+	void hop();
 
-	void StepSizeInGlass();
-	bool HitBoundary();
-	void Roulette();
-	void RecordR(double	Refl /* reflectance. */, OutStruct& Out_Ptr);
-	void RecordT(double Refl, OutStruct& Out_Ptr);
-	void Drop(OutStruct& Out_Ptr);
+	void step_size_in_glass();
+	bool hit_boundary();
+	void roulette();
+	void record_r(double	Refl /* reflectance. */, OutStruct& Out_Ptr);
+	void record_t(double Refl, OutStruct& Out_Ptr);
+	void drop(OutStruct& Out_Ptr);
 
-	void CrossUpOrNot(OutStruct& Out_Ptr);
-	void CrossDnOrNot(OutStruct& Out_Ptr);
+	void cross_up_or_not(OutStruct& Out_Ptr);
+	void cross_down_or_not(OutStruct& Out_Ptr);
 
-	void CrossOrNot(OutStruct& Out_Ptr);
+	void cross_or_not(OutStruct& Out_Ptr);
 
-	void HopInGlass(OutStruct& Out_Ptr);
-	void HopDropSpin(OutStruct& Out_Ptr);
+	void hop_in_glass(OutStruct& Out_Ptr);
+	void hop_drop_spin(OutStruct& Out_Ptr);
 };

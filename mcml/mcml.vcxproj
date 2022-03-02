@@ -155,7 +155,6 @@
     <ClCompile Include="..\io\io.cpp" />
     <ClCompile Include="..\math\math.cpp" />
     <ClCompile Include="..\math\mcmlrandom.cpp" />
-    <ClCompile Include="..\mcmlgo.cpp" />
     <ClCompile Include="..\mcmlio.cpp" />
     <ClCompile Include="..\mcmlmain.cpp" />
     <ClCompile Include="..\mcmlnr.cpp" />
