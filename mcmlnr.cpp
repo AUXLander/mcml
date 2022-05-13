@@ -35,6 +35,11 @@ double Rspecular(LayerStruct* Layerspecs_Ptr)
 	return (r1);
 }
 
+
+PhotonStruct::PhotonStruct(InputStruct& cfg) :
+	In_Ptr{ cfg }, input(cfg), track()
+{;}
+
 /***********************************************************
  *	Initialize a photon packet.
  ****/
@@ -42,11 +47,11 @@ void PhotonStruct::init(const double Rspecular, LayerStruct* Layerspecs_Ptr)
 {
 	w = 1.0 - Rspecular;
 	dead = 0;
-	layer = 1;
+	layer = 1; // LAYER CHANGE
 	step_size = 0;
 	sleft = 0;
 
-	x = 0.0;
+	x = 0.0; // COORD CHANGE
 	y = 0.0;
 	z = 0.0;
 	
@@ -57,9 +62,11 @@ void PhotonStruct::init(const double Rspecular, LayerStruct* Layerspecs_Ptr)
 	/* glass layer. */
 	if ((Layerspecs_Ptr[1].mua == 0.0) && (Layerspecs_Ptr[1].mus == 0.0))
 	{
-		layer = 2;
+		layer = 2; // LAYER CHANGE
 		z = Layerspecs_Ptr[2].z0;
 	}
+
+	track.track(x, y, z, layer);
 }
 
 void PhotonStruct::spin(const double anisotropy)
@@ -94,21 +101,27 @@ void PhotonStruct::spin(const double anisotropy)
 
 void PhotonStruct::hop()
 {
+	// COORD CHANGE
+
 	x += step_size * ux;
 	y += step_size * uy;
 	z += step_size * uz;
+
+	track.track(x, y, z, layer);
 }
 
 void PhotonStruct::step_size_in_glass()
 {
+	const auto& olayer = get_current_layer();
+
 	/* Stepsize to the boundary. */
 	if (uz > 0.0)
 	{
-		step_size = (In_Ptr.layerspecs[layer].z1 - z) / uz;
+		step_size = (olayer.z1 - z) / uz;
 	}
 	else if (uz < 0.0)
 	{
-		step_size = (In_Ptr.layerspecs[layer].z0 - z) / uz;
+		step_size = (olayer.z0 - z) / uz;
 	}
 	else
 	{
@@ -118,26 +131,24 @@ void PhotonStruct::step_size_in_glass()
 
 bool PhotonStruct::hit_boundary()
 {
-	double dl_b;  /* length to boundary. */
+	const auto& olayer = get_current_layer();
 
-	/* Distance to the boundary. */
+	double dl_b;
+
 	if (uz > 0.0)
 	{
-		dl_b = (In_Ptr.layerspecs[layer].z1 - this->z) / uz;	/* dl_b>0. */
+		dl_b = (olayer.z1 - z) / uz;
 	}
 	else if (uz < 0.0)
 	{
-		dl_b = (In_Ptr.layerspecs[layer].z0 - this->z) / uz;	/* dl_b>0. */
+		dl_b = (olayer.z0 - z) / uz;
 	}
 
-	const bool hit = uz != 0.0 && step_size > dl_b;
+	const bool hit = (uz != 0.0 && step_size > dl_b);
 
 	if (hit)
 	{
-		/* not horizontal & crossing. */
-		const double mut = In_Ptr.layerspecs[layer].mua + In_Ptr.layerspecs[layer].mus;
-
-		sleft = (step_size - dl_b) * mut;
+		sleft = (step_size - dl_b) * (olayer.mua + olayer.mus);
 		step_size = dl_b;
 	}
 
@@ -156,79 +167,63 @@ void PhotonStruct::roulette()
 	}
 }
 
-void PhotonStruct::record_r(double Refl, OutStruct& Out_Ptr)
-{
-	short ir, ia;	/* index to r & angle. */
-
-	ir = (short)(std::sqrt(x * x + y * y) / In_Ptr.dr);
-	if (ir > (In_Ptr.nr - 1))
-	{
-		ir = (In_Ptr.nr - 1);
-	}
-
-	ia = (short)(std::acos(-uz) / In_Ptr.da);
-	if (ia > (In_Ptr.na - 1))
-	{
-		ia = (In_Ptr.na - 1);
-	}
-
-	/* assign photon to the reflection array element. */
-	Out_Ptr.Rd_ra[ir][ia] += this->w * (1.0 - Refl);
-
-	w *= Refl;
-}
-
-void PhotonStruct::drop(OutStruct& Out_Ptr)
+void PhotonStruct::drop(OutStruct& output)
 {
 	double dwa;		/* absorbed weight.*/
-	short  iz, ir;	/* index to z & r. */
+	size_t iz, ir;	/* index to z & r. */
 	double mua, mus;
 
 	/* compute array indices. */
-	iz = (short)(z / In_Ptr.dz);
-	if (iz > (In_Ptr.nz - 1))
-	{
-		iz = (In_Ptr.nz - 1);
-	}
+	iz = static_cast<size_t>(z / input.dz);
+	iz = std::min<size_t>(iz, input.nz - 1);
 
-	ir = (short)(std::sqrt(x * x + y * y) / In_Ptr.dr);
-	if (ir > (In_Ptr.nr - 1))
-	{
-		ir = (In_Ptr.nr - 1);
-	}
+	ir = static_cast<size_t>(std::sqrt(x * x + y * y) / input.dr);
+	ir = std::min<size_t>(ir, input.nr - 1);
+	
+
+	const auto& olayer = get_current_layer();
 
 	/* update photon weight. */
-	mua = In_Ptr.layerspecs[layer].mua;
-	mus = In_Ptr.layerspecs[layer].mus;
+	mua = olayer.mua;
+	mus = olayer.mus;
+
 	dwa = w * mua / (mua + mus);
 	
 	w -= dwa;
 
 	/* assign dwa to the absorption array element. */
-	Out_Ptr.A_rz[ir][iz] += dwa;
+	output.A_rz[ir][iz] += dwa;
 }
 
 
-void PhotonStruct::record_t(double Refl, OutStruct& Out_Ptr)
+void PhotonStruct::record_t(double reflectance, OutStruct& output)
 {
-	short  ir, ia;	/* index to r & angle. */
+	size_t ir, ia;	/* index to r & angle. */
 
-	ir = (short)(std::sqrt(x * x + y * y) / In_Ptr.dr);
-	if (ir > (In_Ptr.nr - 1))
-	{
-		ir = (In_Ptr.nr - 1);
-	}
+	ir = static_cast<size_t>(std::sqrt(x * x + y * y) / input.dr);
+	ir = std::min<size_t>(ir, input.nr - 1);
 
-	ia = (short)(std::acos(uz) / In_Ptr.da);
-	if (ia > (In_Ptr.na - 1))
-	{
-		ia = (In_Ptr.na - 1);
-	}
+	ia = static_cast<size_t>(std::acos(uz) / input.da);
+	ia = std::min<size_t>(ia, input.na - 1);
 
-	/* assign photon to the transmittance array element. */
-	Out_Ptr.Tt_ra[ir][ia] += w * (1.0 - Refl);
+	output.Tt_ra[ir][ia] += w * (1.0 - reflectance);
 
-	w *= Refl;
+	w *= reflectance;
+}
+
+void PhotonStruct::record_r(double reflectance, OutStruct& output)
+{
+	size_t ir, ia;
+
+	ir = static_cast<size_t>(std::sqrt(x * x + y * y) / input.dr);
+	ir = std::min<size_t>(ir, input.nr - 1);
+
+	ia = static_cast<size_t>(std::acos(-uz) / input.da);
+	ia = std::min<size_t>(ia, input.na - 1);
+
+	output.Rd_ra[ir][ia] += w * (1.0 - reflectance);
+
+	w *= reflectance;
 }
 
 void PhotonStruct::cross_up_or_not(OutStruct& Out_Ptr)
@@ -259,10 +254,13 @@ void PhotonStruct::cross_up_or_not(OutStruct& Out_Ptr)
 		}
 		else
 		{
-			layer--;
+			layer--; // LAYER CHANGE
+
 			ux *= ni / nt;
 			uy *= ni / nt;
 			uz = -uz1;
+
+			track.track(x, y, z, layer);
 		}
 	}
 	else /* reflected. */
@@ -271,7 +269,7 @@ void PhotonStruct::cross_up_or_not(OutStruct& Out_Ptr)
 	}
 }
 
-void PhotonStruct::cross_down_or_not(OutStruct& Out_Ptr)
+void PhotonStruct::cross_down_or_not(OutStruct& output)
 {
 	//this->uz; /* z directional cosine. */
 	double uz1 = 0.0;	/* cosines of transmission alpha. */
@@ -294,20 +292,23 @@ void PhotonStruct::cross_down_or_not(OutStruct& Out_Ptr)
 		if (layer == In_Ptr.num_layers)
 		{
 			uz = uz1;
-			record_t(0.0, Out_Ptr);
+			record_t(0.0, output);
 			dead = true;
 		}
 		else
 		{
-			layer++;
+			layer++; // LAYER CHANGE
+
 			ux *= ni / nt;
 			uy *= ni / nt;
 			uz = uz1;
+
+			track.track(x, y, z, layer);
 		}
 	}
 	else /* reflected. */
 	{
-		this->uz = -uz;
+		uz = -uz;
 	}
 }
 
@@ -338,21 +339,20 @@ void PhotonStruct::hop_in_glass(OutStruct& Out_Ptr)
 	}
 }
 
-void PhotonStruct::hop_drop_spin(OutStruct& Out_Ptr)
+void PhotonStruct::hop_drop_spin(OutStruct& output)
 {
-	const auto& layersp = In_Ptr.layerspecs[layer];
+	const auto& olayer = get_current_layer();
 
-	if (layersp.is_glass())
+	if (olayer.is_glass())
 	{
-		/* glass layer. */
-		hop_in_glass(Out_Ptr);
+		hop_in_glass(output);
 	}
 	else
 	{
-		const double mua = layersp.mua;
-		const double mus = layersp.mus;
+		const double mua = olayer.mua;
+		const double mus = olayer.mus;
 
-		if (sleft == 0.0) /* make a new step. */
+		if (sleft == 0.0)
 		{
 			double rnd;
 
@@ -360,33 +360,32 @@ void PhotonStruct::hop_drop_spin(OutStruct& Out_Ptr)
 			{
 				rnd = RandomNum();
 			}
-			while (rnd <= 0.0); /* avoid zero. */
+			while (rnd <= 0.0); 
 
-			step_size = -std::log(rnd) / (mua + mus);
+			step_size = - std::log(rnd) / (mua + mus);
 		}
-		else /* take the leftover. */
+		else
 		{
 			step_size = sleft / (mua + mus);
 			sleft = 0.0;
 		}
 
-		//
-		const auto hit = this->hit_boundary();
+		const auto hit = hit_boundary();
 
-		hop();	/* move to boundary plane. */
+		hop();
 
 		if (hit)
 		{
-			cross_or_not(Out_Ptr);
+			cross_or_not(output);
 		}
 		else
 		{
-			drop(Out_Ptr);
-			spin(layersp.anisotropy);
+			drop(output);
+			spin(olayer.anisotropy);
 		}
 	}
 
-	if (this->w < In_Ptr.Wth && !dead)
+	if (w < In_Ptr.Wth && !dead)
 	{
 		roulette();
 	}

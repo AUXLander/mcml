@@ -8,6 +8,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "mcml/tracker.h"
+
 #include "io/io.hpp"
 #include "mcmlnr.hpp"
 

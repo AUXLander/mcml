@@ -135,8 +135,7 @@ void GetFnameFromArgv(int argc, const char* argv[], char* input_filename)
 void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 {
 	OutStruct out_parm(In_Ptr);
-	PhotonStruct photon(In_Ptr);
-
+	
 	long num_photons = In_Ptr.num_photons;
 	long photon_rep = 10;
 
@@ -148,15 +147,45 @@ void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 
 	PunchTime(0, buff);
 
-	do 
+	// singleton 
+	auto& g = tracker::instance();
+	g.set_file("BINARY_DATA.BIN");
+
+	double reserved = 0.0;
+
+	g.set_headers([&](std::fstream& stream) {
+
+		// num of layers
+		stream.write((const char*)&In_Ptr.num_layers, sizeof(In_Ptr.num_layers));
+
+		// num of photons
+		stream.write((const char*)&In_Ptr.num_photons, sizeof(In_Ptr.num_photons));
+
+		stream.write((const char*)&reserved, sizeof(size_t));
+		stream.write((const char*)&reserved, sizeof(size_t));
+		stream.write((const char*)&reserved, sizeof(size_t));
+
+		stream.write((const char*)&reserved, sizeof(reserved));
+		stream.write((const char*)&reserved, sizeof(reserved));
+		stream.write((const char*)&reserved, sizeof(reserved));
+
+		stream.write((const char*)&reserved, sizeof(reserved));
+		stream.write((const char*)&reserved, sizeof(reserved));
+		stream.write((const char*)&reserved, sizeof(reserved));
+	});
+
+	//#pragma omp parallel for
+	for (intptr_t photon_idx = 0; photon_idx < num_photons; ++photon_idx)
 	{
-		if (num_photons - photon_idx == photon_rep)
-		{
-			printf("%ld photons & %hd runs left, ", photon_idx, NumRuns);
-			PredictDoneTime(num_photons - photon_idx, num_photons);
-			photon_rep *= 10;
-		}
-		
+		PhotonStruct photon(In_Ptr);
+
+		//if (num_photons - photon_idx == photon_rep)
+		//{
+		//	printf("%ld photons & %d runs left, ", photon_idx, NumRuns);
+		//	PredictDoneTime(num_photons - photon_idx, num_photons);
+		//	photon_rep *= 10;
+		//}
+
 		photon.init(out_parm.Rsp, In_Ptr.layerspecs);
 
 		do
@@ -165,18 +194,16 @@ void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 		}
 		while (!photon.dead);
 	}
-	while (--photon_idx);
+
+	g.write();
 
 	ReportResult(In_Ptr, out_parm);
 
 	In_Ptr.free();
 }
 
-/***********************************************************
- *	The argument to the command line is filename, if any.
- *	Macintosh does not support command line.
- ****/
-char main(const int argc, const char* argv[])
+
+int main(const int argc, const char* argv[])
 {
 	const int   c_argc = 2;
 	const char* c_argv[] = {
@@ -185,11 +212,14 @@ char main(const int argc, const char* argv[])
 	};
 
 	char input_filename[STRLEN];
+
 	FILE* input_file_ptr;
+
 	short num_runs;	/* number of independent runs. */
+
 	InputStruct in_parm;
 
-	ShowVersion("Version 1.2, 1993");
+	ShowVersion("Version 1.3, 2022");
 	GetFnameFromArgv(c_argc, c_argv, input_filename);
 	input_file_ptr = GetFile(input_filename);
 	CheckParm(input_file_ptr, &in_parm);
@@ -202,5 +232,6 @@ char main(const int argc, const char* argv[])
 	}
 
 	fclose(input_file_ptr);
-	return(0);
+
+	return 0;
 }

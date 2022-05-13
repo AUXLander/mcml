@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 //#include "../mcmlnr.hpp"
 #include <memory>
 #include <numeric>

@@ -119,6 +119,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalIncludeDirectories>..\boost_1_77_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,6 +137,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>..\boost_1_77_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,6 +152,7 @@
     <ClInclude Include="..\math\mcmlrandom.h" />
     <ClInclude Include="..\mcml.hpp" />
     <ClInclude Include="..\mcmlnr.hpp" />
+    <ClInclude Include="tracker.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\io\io.cpp" />

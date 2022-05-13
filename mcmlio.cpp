@@ -505,8 +505,8 @@ void ReadParm(FILE* File_Ptr, InputStruct* In_Ptr)
 	ReadNzNrNa(File_Ptr, In_Ptr);
 	ReadNumLayers(File_Ptr, In_Ptr);
 
-	ReadLayerSpecs(File_Ptr, In_Ptr->num_layers,
-		&In_Ptr->layerspecs);
+	ReadLayerSpecs(File_Ptr, In_Ptr->num_layers, &In_Ptr->layerspecs);
+
 	CriticalAngle(In_Ptr->num_layers, &In_Ptr->layerspecs);
 }
 

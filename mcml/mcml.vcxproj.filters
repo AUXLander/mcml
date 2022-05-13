@@ -22,6 +22,9 @@
     <Filter Include="Исходные файлы\math">
       <UniqueIdentifier>{328d25e2-e93b-44c2-a380-492ee8e229a7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Исходные файлы\tracking">
+      <UniqueIdentifier>{8a4ed5e0-85ac-42dd-abfb-af9abe3d4b7f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\mcml.hpp">
@@ -38,6 +41,9 @@
     </ClInclude>
     <ClInclude Include="..\math\mcmlrandom.h">
       <Filter>Исходные файлы\math</Filter>
+    </ClInclude>
+    <ClInclude Include="tracker.h">
+      <Filter>Исходные файлы\tracking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

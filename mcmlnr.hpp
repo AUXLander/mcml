@@ -1,22 +1,10 @@
 #pragma once
 
+#include "mcml/tracker.h"
 #include "io/io.hpp"
 
 #include "math/math.h"
 
-/****
- *	Structure used to describe the geometry and optical
- *	properties of a layer.
- *	z0 and z1 are the z coordinates for the upper boundary
- *	and lower boundary respectively.
- *
- *	cos_crit0 and cos_crit1 are the cosines of the
- *	critical angle of total internal reflection for the
- *	upper boundary and lower boundary respectively.
- *	They are set to zero if no total internal reflection
- *	exists.
- *	They are used for computation speed.
- ****/
 struct LayerStruct
 {
 	double z0, z1;	/* z coordinates of a layer. [cm] */
@@ -35,25 +23,33 @@ struct LayerStruct
 
 double Rspecular(LayerStruct* Layerspecs_Ptr);
 
-/****
- *	Structure used to describe a photon packet.
- ****/
+
 struct PhotonStruct
 {
-	double x, y, z;	/* Cartesian coordinates.[cm] */
-	double ux, uy, uz;/* directional cosines of a photon. */
-	double w;			/* weight. */
-	bool dead;		/* 1 if photon is terminated. */
-	short layer;		/* index to layer where the photon */
-					  /* packet resides. */
-	double step_size;	/* current step size. [cm]. */
-	double sleft;		/* step size left. dimensionless [-]. */
+	double x{0}, y{0}, z{0};
+	double ux{0}, uy{0}, uz{0};
+	double w{0};
+
+	bool dead {false};
+
+	size_t layer{0};
+
+	double step_size{0};
+	double sleft{0};
 
 	InputStruct& In_Ptr;
+	InputStruct& input;
 
-	PhotonStruct(InputStruct& cfg)
-		: In_Ptr(cfg)
-	{;}
+	tracker::local_thread_storage track;
+
+	PhotonStruct(InputStruct& cfg);
+
+	~PhotonStruct()
+	{
+		auto& g = tracker::instance();
+
+		g.track(std::move(track));
+	}
 
 	void init(const double Rspecular, LayerStruct* Layerspecs_Ptr);
 
@@ -75,4 +71,12 @@ struct PhotonStruct
 
 	void hop_in_glass(OutStruct& Out_Ptr);
 	void hop_drop_spin(OutStruct& Out_Ptr);
+
+	LayerStruct& get_current_layer()
+	{
+		assert(In_Ptr.layerspecs);
+		//assert(In_Ptr.num_layers > layer);
+
+		return In_Ptr.layerspecs[layer];
+	}
 };
