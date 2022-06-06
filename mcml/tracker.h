@@ -10,80 +10,54 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <deque>
 #include <unordered_map>
+#include <set>
 
 #include <boost/functional/hash.hpp>
 
-
-template<class T>
-struct point
+enum : size_t
 {
-	T x;
-	T y;
-	T z;
-
-	size_t layer;
-
-	point(T x, T y, T z, size_t layer) :
-		x(x), y(y), z(z), layer(layer)
-	{;}
-
-	point(const point<T>& other) :
-		x(other.x), y(other.y), z(other.z),
-		layer(other.layer)
-	{;}
-
-	friend std::fstream& operator<<(std::fstream& stream, const point<T>& p)
-	{
-		stream.write((const char*)&p.x, sizeof(x));
-		stream.write((const char*)&p.y, sizeof(y));
-		stream.write((const char*)&p.z, sizeof(z));
-
-		stream.write((const char*)&p.layer, sizeof(layer));
-
-		return stream;
-	}
-
-	bool operator<(const point<T>& other) const
-	{
-		return layer < other.layer;
-	}
+	DPI_X = 10U,
+	DPI_Y = 10U,
+	DPI_Z = 10U,
 };
 
-using point_t = point<double>;
-//using unique_point_t = std::unique_ptr<>;
+enum : size_t
+{
+	DOTS_PER_X     = 1U,
+	DOTS_PER_Y     = DOTS_PER_X * DPI_X,
+	DOTS_PER_Z	   = DOTS_PER_Y * DPI_Y,
+	DOTS_PER_LAYER = DOTS_PER_Z * DPI_Z
+};
 
-
-constexpr static size_t dpi_x = 100U;
-constexpr static size_t dpi_y = 100U;
-constexpr static size_t dpi_z = 100U;
-
-
-constexpr static size_t dots_per_x = 1U;
-constexpr static size_t dots_per_y = dpi_x * dots_per_x;
-constexpr static size_t dots_per_z = dpi_y * dots_per_y;
-constexpr static size_t dots_per_l = dpi_z * dots_per_z;
-
-struct p_point
+struct point
 {
 	size_t x_idx;
 	size_t y_idx;
 	size_t z_idx;
 	size_t l_idx;
 
-	p_point(size_t x_idx, size_t y_idx, size_t z_idx, size_t l_idx) :
-		x_idx(x_idx), y_idx(y_idx), z_idx(z_idx), l_idx(l_idx)
-	{;}
+private:
+	size_t index;
 
-	size_t to_index() const
+public:
+
+	point(size_t x_idx, size_t y_idx, size_t z_idx, size_t l_idx) :
+		x_idx(x_idx), y_idx(y_idx), z_idx(z_idx), l_idx(l_idx - 1U)
 	{
-		return dots_per_x * x_idx +
-			   dots_per_y * y_idx +
-			   dots_per_z * z_idx + 
-			   dots_per_l * l_idx;
+		index = this->x_idx * DOTS_PER_X +
+				this->z_idx * DOTS_PER_Y +
+				this->y_idx * DOTS_PER_Z +
+			    this->l_idx * DOTS_PER_LAYER;
 	}
 
-	bool operator==(const p_point& other) const
+	inline size_t to_index() const noexcept
+	{
+		return index;
+	}
+
+	bool operator==(const point& other) const
 	{
 		return x_idx == other.x_idx && 
 			   y_idx == other.y_idx && 
@@ -93,7 +67,7 @@ struct p_point
 
 	struct hash
 	{
-		size_t operator()(const p_point& p) const
+		size_t operator()(const point& p) const
 		{
 			size_t hash = 0;
 
@@ -108,38 +82,29 @@ struct p_point
 };
 
 
+static double z_max = 0;
+static double z_min = 0;
 
 
 struct tracker
 {
-	class id_t
-	{
-		size_t __val{0U};
-
-	public:
-		size_t next()
-		{
-			return __val++;
-		}
-	};
-
 	struct local_thread_storage
 	{
+		std::set<size_t> zs;
+
 		using dot_counter_t = size_t;
 
 		constexpr static double min_x = -1.0;
 		constexpr static double min_y = -1.0;
-		constexpr static double min_z = -1.0;
+		constexpr static double min_z = -0.0;
 
 		constexpr static double max_x = +1.0;
 		constexpr static double max_y = +1.0;
-		constexpr static double max_z = +2.0;
+		constexpr static double max_z = +0.2;
 
-		constexpr static double step_x = (max_x - min_x) / static_cast<double>(dpi_x);
-		constexpr static double step_y = (max_y - min_y) / static_cast<double>(dpi_y);
-		constexpr static double step_z = (max_z - min_z) / static_cast<double>(dpi_z);
-
-		using dot_storage_t = std::vector<dot_counter_t>;
+		constexpr static double step_x = (max_x - min_x) / static_cast<double>(DPI_X);
+		constexpr static double step_y = (max_y - min_y) / static_cast<double>(DPI_Y);
+		constexpr static double step_z = (max_z - min_z) / static_cast<double>(DPI_Z);
 
 		friend class tracker;
 
@@ -150,20 +115,14 @@ struct tracker
 
 	private:
 
-		dot_storage_t __heat_map;
-
-		std::unordered_map<p_point, size_t*, p_point::hash> __heat_hash;
+		std::unordered_map<point, size_t, point::hash> __heathash;
 
 		size_t __total_count;
 
 	public:
 		local_thread_storage() :
-			__heat_map{},
 			__total_count {0}
-		{
-			// 6 is count of layers
-			__heat_map.resize(dpi_x* dpi_y* dpi_z* 6U, 0U);
-		}
+		{;}
 
 		local_thread_storage(const local_thread_storage& other) = delete;
 
@@ -171,59 +130,52 @@ struct tracker
 
 		void track(const double& x, const double& y, const double& z, size_t layer)
 		{
-			const p_point key {
+			const point key {
 				static_cast<dot_counter_t>((x - min_x) / step_x),
 				static_cast<dot_counter_t>((y - min_y) / step_y),
 				static_cast<dot_counter_t>((z - min_z) / step_z),
 				layer
 			};
 
-			if (key.to_index() > __heat_map.size())
-			{
-				key.to_index();
-			}
+			auto [it, inserted] = __heathash.try_emplace(key, 0U);
 
-			auto& item = __heat_map[key.to_index()];
+			it->second += 1U;
 
-			__heat_hash.try_emplace(key, &item);
+			// auto& item = __heatmap[key.to_index()];
 
-			++item;
+			// ++item;
+
+			// __heathash.try_emplace(key, &item);
+
 			++__total_count;
+
+
+			z_max = std::fmax(z_max, z);
+			z_min = std::fmin(z_min, z);
+
+			zs.insert(key.z_idx);
+
 		}
 
-		void combine(const local_thread_storage& lhs, combine_mode_e mode)
+		void combine(const local_thread_storage& rhs, combine_mode_e mode)
 		{
-			assert(__heat_map.size() == lhs.__heat_map.size());
+			for (auto item : rhs.zs)
+			{
+				zs.insert(item);
+			}
 
 			switch (mode)
 			{
 				case combine_mode_e::COMBINE_ADD:
 				{
-					auto coefficient = (float)lhs.__heat_hash.size() / (float)lhs.__heat_map.size();
-
-					if (coefficient <= 0.25)
+					for (auto [key, value] : rhs.__heathash)
 					{
-						for (auto& [key, value] : lhs.__heat_hash)
-						{
-							auto& item = __heat_map[key.to_index()];
+						auto [it, inserted] = __heathash.try_emplace(key, 0U);
 
-							__heat_hash.try_emplace(key, &item);
-
-							item += *value;
-						}
-					}
-					else
-					{
-						intptr_t size = __heat_map.size();
-
-						#pragma omp parallel for
-						for (intptr_t index = 0; index < size; ++index)
-						{
-							__heat_map[index] += lhs.__heat_map[index];
-						}
+						it->second += value;
 					}
 
-					__total_count += lhs.__total_count;
+					__total_count += rhs.__total_count;
 				};
 				break;
 			}
@@ -231,11 +183,25 @@ struct tracker
 
 		void write(std::fstream& stream) const 
 		{
+			const size_t layers_count = 5U;
+
+			std::deque<dot_counter_t> __heatmap(DPI_X * DPI_Y * DPI_Z * layers_count, 0U);
+
+			for (const auto [key, value] : __heathash)
+			{
+				const auto index = key.to_index();
+
+				if (index <= __heatmap.size())
+				{
+					__heatmap[index] = value;
+				}
+			}
+
 			stream.write((const char*)&__total_count, sizeof(__total_count));
 
-			for (const auto& point : __heat_map)
+			for (const auto count : __heatmap)
 			{
-				stream << point;
+				stream.write((const char*)&count, sizeof(count));
 			}
 		}
 	};
@@ -305,20 +271,19 @@ public:
 
 		if (__file)
 		{
-			id_t idgen;
-			size_t nums = 0U;
-
 			double min_x = -1.0;
 			double min_y = -1.0;
-			double min_z = -1.0;
+			double min_z = -0.0;
 
 			double max_x = +1.0;
 			double max_y = +1.0;
-			double max_z = +2.0;
+			double max_z = +0.2;
+
+			size_t dpi_x = DPI_X;
+			size_t dpi_y = DPI_Y;
+			size_t dpi_z = DPI_Z;
 
 			auto& stream = *__file;
-
-			__file->write((const char*)&__main_thread_storage.__total_count, sizeof(__main_thread_storage.__total_count));
 
 			__file->flush();
 
@@ -326,6 +291,7 @@ public:
 
 			__file->flush();
 
+			// num of layers + photons
 			__file->seekg(sizeof(short) + sizeof(long));
 			__file->seekp(sizeof(short) + sizeof(long));
 

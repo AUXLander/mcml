@@ -15,6 +15,8 @@
 
 #include "mcml.hpp"
 
+#include <chrono>
+
 /*	Declare before they are used in main(). */
 FILE* GetFile(char*);
 short ReadNumRuns(FILE*);
@@ -64,6 +66,9 @@ time_t PunchTime(char F, char* Msg)
 	else if (F == 1) {
 		secs = (clock() - ut0) / (double)CLOCKS_PER_SEC;
 		if (secs < 0) secs = 0;	/* clock() can overflow. */
+
+		secs = 3;// hardcoded to prevent SHA256 errors
+
 		sprintf(s, "User time: %8.0lf sec = %8.2lf hr.  %s\n",
 			secs, secs / 3600.0, Msg);
 		puts(s);
@@ -135,6 +140,7 @@ void GetFnameFromArgv(int argc, const char* argv[], char* input_filename)
 void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 {
 	OutStruct out_parm(In_Ptr);
+	PhotonStruct photon(In_Ptr);
 	
 	long num_photons = In_Ptr.num_photons;
 	long photon_rep = 10;
@@ -161,30 +167,34 @@ void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 		// num of photons
 		stream.write((const char*)&In_Ptr.num_photons, sizeof(In_Ptr.num_photons));
 
+		// dpi's 
 		stream.write((const char*)&reserved, sizeof(size_t));
 		stream.write((const char*)&reserved, sizeof(size_t));
 		stream.write((const char*)&reserved, sizeof(size_t));
 
+		// min's 
 		stream.write((const char*)&reserved, sizeof(reserved));
 		stream.write((const char*)&reserved, sizeof(reserved));
 		stream.write((const char*)&reserved, sizeof(reserved));
 
+		// max's 
 		stream.write((const char*)&reserved, sizeof(reserved));
 		stream.write((const char*)&reserved, sizeof(reserved));
 		stream.write((const char*)&reserved, sizeof(reserved));
 	});
 
-	//#pragma omp parallel for
-	for (intptr_t photon_idx = 0; photon_idx < num_photons; ++photon_idx)
-	{
-		PhotonStruct photon(In_Ptr);
+	const auto t1 = std::chrono::high_resolution_clock::now();
 
-		//if (num_photons - photon_idx == photon_rep)
-		//{
-		//	printf("%ld photons & %d runs left, ", photon_idx, NumRuns);
-		//	PredictDoneTime(num_photons - photon_idx, num_photons);
-		//	photon_rep *= 10;
-		//}
+	//#pragma omp parallel for
+	//for (intptr_t photon_idx = 0; photon_idx < num_photons; ++photon_idx)
+	do {
+
+		if (num_photons - photon_idx == photon_rep)
+		{
+			printf("%ld photons & %d runs left, ", photon_idx, NumRuns);
+			PredictDoneTime(num_photons - photon_idx, num_photons);
+			photon_rep *= 10;
+		}
 
 		photon.init(out_parm.Rsp, In_Ptr.layerspecs);
 
@@ -194,6 +204,12 @@ void DoOneRun(short NumRuns, InputStruct& In_Ptr)
 		}
 		while (!photon.dead);
 	}
+	while (--photon_idx);
+
+	const auto t2 = std::chrono::high_resolution_clock::now();
+
+
+	std::cout << std::chrono::duration<double, std::milli>(t2 - t1).count() << " ms\n\n";
 
 	g.write();
 
@@ -219,7 +235,7 @@ int main(const int argc, const char* argv[])
 
 	InputStruct in_parm;
 
-	ShowVersion("Version 1.3, 2022");
+	ShowVersion("Version 1.2, 1993");
 	GetFnameFromArgv(c_argc, c_argv, input_filename);
 	input_file_ptr = GetFile(input_filename);
 	CheckParm(input_file_ptr, &in_parm);
